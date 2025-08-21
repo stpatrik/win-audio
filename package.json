@@ -1,6 +1,6 @@
 {
   "name": "win-audio-fork",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Fork of win-audio: control speaker and microphone volume on Windows",
   "main": "index.js",
   "types": "index.d.ts",
