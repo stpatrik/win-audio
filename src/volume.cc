@@ -23,48 +23,11 @@ static EDataFlow ToDataFlow(EndpointKind k) {
   return k == EndpointKind::Render ? eRender : eCapture;
 }
 
-// ---------------- IAudioEndpointVolumeCallback ----------------
-class VolumeCallback : public IAudioEndpointVolumeCallback {
-  LONG refCount_ = 1;
-public:
-  std::function<void(float,bool)> onChange; // will be set by controller
-
-  // IUnknown
-  ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&refCount_); }
-  ULONG STDMETHODCALLTYPE Release() override {
-    ULONG res = InterlockedDecrement(&refCount_);
-    if (res == 0) delete this;
-    return res;
-  }
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, VOID **ppv) override {
-    if (iid == IID_IUnknown || iid == __uuidof(IAudioEndpointVolumeCallback)) {
-      *ppv = static_cast<IAudioEndpointVolumeCallback*>(this);
-      AddRef();
-      return S_OK;
-    }
-    *ppv = nullptr;
-    return E_NOINTERFACE;
-  }
-
-  // Windows notifies on any volume/mute change (system/app/hardware)
-  HRESULT STDMETHODCALLTYPE OnNotify(PAUDIO_VOLUME_NOTIFICATION_DATA pNotify) override {
-    if (!pNotify) return S_OK;
-    if (onChange) {
-      float vol = pNotify->fMasterVolume * 100.0f;
-      bool mute = pNotify->bMuted ? true : false;
-      onChange(vol, mute);
-    }
-    return S_OK;
-  }
-};
-
-// ---------------- VolumeController ----------------
 VolumeController::VolumeController(EndpointKind kind) : kind_(kind) {
   EnsureCOMInitialized();
 }
 
 VolumeController::~VolumeController() {
-  DetachCallback_();
   endpointVolume_.Reset();
 }
 
@@ -86,7 +49,6 @@ bool VolumeController::EnsureDefaultEndpoint_() {
   if (FAILED(hr)) return false;
 
   endpointVolume_ = volume;
-  if (listening_) AttachCallback_();
   return true;
 }
 
@@ -98,14 +60,11 @@ bool VolumeController::UseDevice(const std::wstring &deviceId) {
                                 IID_PPV_ARGS(&enumerator));
   if (FAILED(hr)) return false;
 
-  // detach from previous endpoint (if listening)
-  DetachCallback_();
-
   ComPtr<IMMDevice> device;
   hr = enumerator->GetDevice(deviceId.c_str(), &device);
   if (FAILED(hr)) return false;
 
-  // verify flow matches
+  // убедимся, что тип совпадает (render/capture)
   ComPtr<IMMEndpoint> ep;
   if (SUCCEEDED(device.As(&ep))) {
     EDataFlow flow;
@@ -120,16 +79,11 @@ bool VolumeController::UseDevice(const std::wstring &deviceId) {
   if (FAILED(hr)) return false;
 
   endpointVolume_ = volume;
-  if (listening_) AttachCallback_();
   return true;
 }
 
 void VolumeController::ClearDevice() {
-  DetachCallback_();
   endpointVolume_.Reset();
-  if (listening_) {
-    EnsureDefaultEndpoint_(); // re-attach on default
-  }
 }
 
 std::optional<float> VolumeController::GetVolume() {
@@ -212,44 +166,4 @@ std::vector<DeviceInfo> VolumeController::ListDevices(std::optional<EndpointKind
   }
 
   return out;
-}
-
-// ---- notifications ----
-bool VolumeController::AttachCallback_() {
-  if (!endpointVolume_) return false;
-  if (!cb_fn_) return false;
-  if (cb_) DetachCallback_(); // safety
-
-  cb_ = new VolumeCallback();
-  cb_->onChange = cb_fn_;
-  HRESULT hr = endpointVolume_->RegisterControlChangeNotify(cb_);
-  if (FAILED(hr)) {
-    cb_->Release();
-    cb_ = nullptr;
-    return false;
-  }
-  return true;
-}
-
-void VolumeController::DetachCallback_() {
-  if (endpointVolume_ && cb_) {
-    endpointVolume_->UnregisterControlChangeNotify(cb_);
-  }
-  if (cb_) {
-    cb_->Release();
-    cb_ = nullptr;
-  }
-}
-
-bool VolumeController::RegisterCallback(std::function<void(float,bool)> cb) {
-  cb_fn_ = std::move(cb);
-  if (!endpointVolume_) {
-    if (!EnsureDefaultEndpoint_()) return false;
-  }
-  return AttachCallback_();
-}
-
-void VolumeController::UnregisterCallback() {
-  cb_fn_ = nullptr;
-  DetachCallback_();
 }

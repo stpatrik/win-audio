@@ -1,7 +1,7 @@
 {
-  "name": "win-audio-fork",
-  "version": "1.0.0",
-  "description": "Windows per-device volume (speaker/mic) for Node.js (fork of win-audio API)",
+    "name": "win-audio",
+  "version": "1.1.0",
+  "description": "Windows audio volume control (fork, without listener)",
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {

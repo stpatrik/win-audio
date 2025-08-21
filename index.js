@@ -6,10 +6,9 @@ function createVolume(render) {
   const kind = render ? 'render' : 'capture';
 
   return {
-    // список устройств
+    // устройства
     getDevicesList: () => bindings._getDevices(kind),
 
-    // выбор устройства
     selectDevice: (deviceId) => {
       const ok = inst.use(String(deviceId));
       if (ok) {
@@ -26,34 +25,16 @@ function createVolume(render) {
       currentDevice = null;
     },
 
-    // управление громкостью
-    get: () => {
-      const vol = inst.get();
-      const tag = render ? 'speaker' : 'mic';
-      const label = currentDevice ? `${currentDevice.name} (${currentDevice.id})` : 'DEFAULT DEVICE';
-      if (vol != null) console.log(`[${tag}] ${label} → volume: ${Math.round(vol)}%`);
-      return vol;
-    },
+    // громкость
+    get: () => inst.get(),
     set: (v) => inst.set(Number(v)),
     increase: (delta = 2) => inst.set(Math.min(100, (inst.get() || 0) + Number(delta))),
     decrease: (delta = 2) => inst.set(Math.max(0, (inst.get() || 0) - Number(delta))),
+
+    // mute
     mute: () => inst.mute(),
     unmute: () => inst.unmute(),
     isMuted: () => inst.isMuted(),
-
-    // события изменения из системы
-    onVolumeChange: (cb) => {
-      if (typeof cb !== 'function') throw new Error('Callback must be a function');
-      return inst.onVolumeChange((state) => {
-        cb({
-          volume: state.volume,
-          mute: state.mute,
-          device: currentDevice,
-          kind
-        });
-      });
-    },
-    offVolumeChange: () => inst.offVolumeChange(),
   };
 }
 

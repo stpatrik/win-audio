@@ -25,10 +25,7 @@ public:
       InstanceMethod("set", &NapiVolume::Set),
       InstanceMethod("mute", &NapiVolume::Mute),
       InstanceMethod("unmute", &NapiVolume::Unmute),
-      InstanceMethod("isMuted", &NapiVolume::IsMuted),
-      // listener API
-      InstanceMethod("onVolumeChange", &NapiVolume::OnVolumeChange),
-      InstanceMethod("offVolumeChange", &NapiVolume::OffVolumeChange)
+      InstanceMethod("isMuted", &NapiVolume::IsMuted)
     });
 
     constructor = Napi::Persistent(func);
@@ -71,11 +68,10 @@ public:
   }
 
 private:
-  // device select
+  // выбор устройства
   Napi::Value Use(const Napi::CallbackInfo &info) {
     Napi::Env env = info.Env();
     if (info.Length() < 1 || !info[0].IsString()) return Napi::Boolean::New(env, false);
-
     std::wstring idW = Utf8ToWide(info[0].As<Napi::String>().Utf8Value());
     bool ok = ctrl_->UseDevice(idW);
     return Napi::Boolean::New(env, ok);
@@ -86,7 +82,7 @@ private:
     return info.Env().Undefined();
   }
 
-  // volume/mute
+  // громкость
   Napi::Value Get(const Napi::CallbackInfo &info) {
     auto v = ctrl_->GetVolume();
     if (!v.has_value()) return info.Env().Null();
@@ -117,50 +113,8 @@ private:
     return Napi::Boolean::New(info.Env(), *m);
   }
 
-  // notifications
-  Napi::Value OnVolumeChange(const Napi::CallbackInfo &info) {
-    Napi::Env env = info.Env();
-    if (info.Length() < 1 || !info[0].IsFunction()) {
-      Napi::TypeError::New(env, "Expected callback").ThrowAsJavaScriptException();
-      return Napi::Boolean::New(env, false);
-    }
-    // clear previous
-    OffVolumeChange(info);
-
-    Napi::Function jsCallback = info[0].As<Napi::Function>();
-    tsfn_ = std::make_unique<Napi::ThreadSafeFunction>(
-      Napi::ThreadSafeFunction::New(env, jsCallback, "VolumeCallback", 0, 1)
-    );
-
-    bool ok = ctrl_->RegisterCallback([this](float vol, bool mute) {
-      if (!tsfn_) return;
-      tsfn_->BlockingCall([vol, mute](Napi::Env env, Napi::Function cb) {
-        Napi::Object o = Napi::Object::New(env);
-        o.Set("volume", vol);
-        o.Set("mute", mute);
-        cb.Call({ o });
-      });
-    });
-
-    if (!ok) {
-      tsfn_->Release();
-      tsfn_.reset();
-    }
-    return Napi::Boolean::New(env, ok);
-  }
-
-  Napi::Value OffVolumeChange(const Napi::CallbackInfo &info) {
-    ctrl_->UnregisterCallback();
-    if (tsfn_) {
-      tsfn_->Release();
-      tsfn_.reset();
-    }
-    return info.Env().Undefined();
-  }
-
   static Napi::FunctionReference constructor;
   std::unique_ptr<VolumeController> ctrl_;
-  std::unique_ptr<Napi::ThreadSafeFunction> tsfn_;
 };
 
 Napi::FunctionReference NapiVolume::constructor;

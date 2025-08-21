@@ -4,13 +4,6 @@ export interface DeviceInfo {
   isDefault: boolean;
 }
 
-export interface VolumeChangeEvent {
-  volume: number;          // 0..100
-  mute: boolean;
-  device?: DeviceInfo | { id: string; name: string } | null;
-  kind?: 'render' | 'capture';
-}
-
 export interface Volume {
   // устройства
   getDevicesList(): DeviceInfo[];
@@ -27,10 +20,6 @@ export interface Volume {
   mute(): boolean;
   unmute(): boolean;
   isMuted(): boolean | null;
-
-  // события изменений из системы (без опроса)
-  onVolumeChange(cb: (e: VolumeChangeEvent) => void): boolean;
-  offVolumeChange(): void;
 }
 
 export const speaker: Volume;
