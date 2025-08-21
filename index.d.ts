@@ -4,9 +4,19 @@ export interface DeviceInfo {
   isDefault: boolean;
 }
 
+export interface DevicesBundle {
+  render: DeviceInfo[];  // устройства вывода (speakers/headphones)
+  capture: DeviceInfo[]; // устройства ввода (microphones)
+}
+
+// Новый общий метод: без аргументов, вернёт оба списка
+export function getDevices(): DevicesBundle;
+
 export interface Volume {
-  // устройства
+  // (legacy, можно не использовать) — список для конкретного типа
   getDevicesList(): DeviceInfo[];
+
+  // выбор устройства; вернёт false, если тип устройства не подходит этому контроллеру
   selectDevice(deviceId: string): boolean;
   clearDevice(): void;
 
@@ -22,5 +32,5 @@ export interface Volume {
   isMuted(): boolean | null;
 }
 
-export const speaker: Volume;
-export const mic: Volume;
+export const speaker: Volume; // контроллер вывода (render)
+export const mic: Volume;     // контроллер ввода (capture)

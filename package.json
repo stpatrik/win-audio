@@ -1,18 +1,14 @@
 {
-    "name": "win-audio",
-  "version": "1.1.0",
-  "description": "Windows audio volume control (fork, without listener)",
+  "name": "win-audio-fork",
+  "version": "1.2.0.",
+  "description": "Fork of win-audio with device selection and simplified API (no listener).",
   "main": "index.js",
   "types": "index.d.ts",
-  "scripts": {
-    "rebuild": "node-gyp rebuild"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stpatrik/win-audio.git"
   },
-  "gypfile": true,
-  "dependencies": {
-    "node-addon-api": "^7.0.0",
-    "node-gyp-build": "^4.8.4"
-  },
-  "engines": {
-    "node": ">=18"
-  }
+  "author": "stpatrik",
+  "license": "MIT",
+  "gypfile": true
 }
