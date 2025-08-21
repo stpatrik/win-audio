@@ -1,14 +1,35 @@
 {
   "name": "win-audio-fork",
-  "version": "2.0.0",
-  "description": "Fork of win-audio with device selection and simplified API (no listener).",
+  "version": "1.2.0",
+  "description": "Fork of win-audio: control speaker and microphone volume on Windows",
   "main": "index.js",
   "types": "index.d.ts",
+  "gypfile": true,
+  "scripts": {
+    "install": "node-gyp rebuild",
+    "test": "node test.js"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/stpatrik/win-audio.git"
+    "url": "https://github.com/stpatrik/win-audio-fork.git"
   },
+  "keywords": [
+    "audio",
+    "windows",
+    "volume",
+    "microphone",
+    "speaker",
+    "win32"
+  ],
   "author": "stpatrik",
   "license": "MIT",
-  "gypfile": true
+  "dependencies": {
+    "node-addon-api": "^7.1.0"
+  },
+  "devDependencies": {
+    "node-gyp": "^10.0.1"
+  },
+  "os": [
+    "win32"
+  ]
 }

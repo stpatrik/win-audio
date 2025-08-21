@@ -1,60 +1,47 @@
+// Совместимость с оригиналом + расширения для выбора устройств.
+// Внутри используем нативные биндинги (_create для инстанса и _getDevices для списка).
 const bindings = require('node-gyp-build')(__dirname);
 
-// Новый общий метод: вернуть оба списка устройств
-function getDevices() {
+// Вспомогательная функция создания контроллера для типа устройства
+function createController(kind /* 'render' | 'capture' */) {
+  // В нативном аддоне _create ожидает boolean: true => render (speaker), false => capture (mic)
+  const inst = bindings._create(kind === 'render');
+
   return {
-    render: bindings._getDevices('render'),
-    capture: bindings._getDevices('capture'),
+    // ОРИГИНАЛЬНЫЙ API
+    get: () => inst.get(),                 // 0..100 или null
+    set: (v) => inst.set(Number(v)),       // boolean
+    mute: () => inst.mute(),               // boolean
+    unmute: () => inst.unmute(),           // boolean
+    isMuted: () => inst.isMuted(),         // boolean | null
+
+    // УДОБНЫЕ ХЕЛПЕРЫ (не ломают совместимость)
+    increase: (delta = 2) => {
+      const cur = inst.get();
+      return inst.set(Math.min(100, (cur || 0) + Number(delta)));
+    },
+    decrease: (delta = 2) => {
+      const cur = inst.get();
+      return inst.set(Math.max(0, (cur || 0) - Number(delta)));
+    },
+
+    // НАШИ НОВЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С КОНКРЕТНЫМИ УСТРОЙСТВАМИ
+    getDevices: () => bindings._getDevices(kind),     // только этого типа
+    selectDevice: (deviceId) => inst.use(String(deviceId)), // привязка к устройству
+    clearDevice: () => inst.clearDevice(),            // вернуться к системному default
   };
 }
 
-function createVolume(render) {
-  const inst = bindings._create(!!render);
-  let currentDevice = null; // { id, name }
-  const kind = render ? 'render' : 'capture';
+const audio = {
+  // ОРИГИНАЛЬНЫЙ API (совместимость)
+  speaker: createController('render'), // динамики/наушники
+  mic: createController('capture'),    // микрофоны
 
-  return {
-    // Оставил для обратной совместимости (можно больше не использовать)
-    getDevicesList: () => bindings._getDevices(kind),
-
-    // Выбор устройства. Вернет false, если тип устройства не совпадает (например, микрофон для speaker)
-    selectDevice: (deviceId) => {
-      const ok = inst.use(String(deviceId));
-      if (ok) {
-        const list = bindings._getDevices(kind);
-        currentDevice =
-          list.find((d) => d.id === deviceId) || { id: deviceId, name: 'Unknown' };
-      } else {
-        console.warn(
-          `[${render ? 'speaker' : 'mic'}] selectDevice FAILED for id: ${deviceId}`
-        );
-      }
-      return ok;
-    },
-
-    clearDevice: () => {
-      inst.clearDevice();
-      currentDevice = null;
-    },
-
-    // громкость
-    get: () => inst.get(),
-    set: (v) => inst.set(Number(v)),
-    increase: (delta = 2) => inst.set(Math.min(100, (inst.get() || 0) + Number(delta))),
-    decrease: (delta = 2) => inst.set(Math.max(0, (inst.get() || 0) - Number(delta))),
-
-    // mute
-    mute: () => inst.mute(),
-    unmute: () => inst.unmute(),
-    isMuted: () => inst.isMuted(),
-  };
-}
-
-module.exports = {
-  // новый единый метод
-  getDevices,
-
-  // контролы для вывода и ввода
-  speaker: createVolume(true),
-  mic: createVolume(false),
+  // НОВЫЕ КОРОНЕВЫЕ АЛИАСЫ (по умолчанию управляют динамиками, чтобы не ломать поведение)
+  // audio.getDevices() — только РЕНДЕР (динамики), как и просили
+  getDevices: () => bindings._getDevices('render'),
+  // audio.selectDevice(id) — выбирает устройство для speaker (render)
+  selectDevice: (deviceId) => audio.speaker.selectDevice(deviceId),
 };
+
+module.exports = audio;

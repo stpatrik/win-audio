@@ -4,33 +4,33 @@ export interface DeviceInfo {
   isDefault: boolean;
 }
 
-export interface DevicesBundle {
-  render: DeviceInfo[];  // устройства вывода (speakers/headphones)
-  capture: DeviceInfo[]; // устройства ввода (microphones)
-}
-
-// Новый общий метод: без аргументов, вернёт оба списка
-export function getDevices(): DevicesBundle;
-
-export interface Volume {
-  // (legacy, можно не использовать) — список для конкретного типа
-  getDevicesList(): DeviceInfo[];
-
-  // выбор устройства; вернёт false, если тип устройства не подходит этому контроллеру
-  selectDevice(deviceId: string): boolean;
-  clearDevice(): void;
-
-  // громкость 0–100
-  get(): number | null;
+export interface VolumeController {
+  // ОРИГИНАЛЬНЫЙ API
+  get(): number | null;                 // 0..100
   set(v: number): boolean;
-  increase(delta?: number): boolean;
-  decrease(delta?: number): boolean;
-
-  // mute
   mute(): boolean;
   unmute(): boolean;
   isMuted(): boolean | null;
+
+  // УДОБНЫЕ ХЕЛПЕРЫ
+  increase(delta?: number): boolean;
+  decrease(delta?: number): boolean;
+
+  // НОВЫЕ ФУНКЦИИ ДЛЯ ВЫБОРА УСТРОЙСТВА
+  getDevices(): DeviceInfo[];           // только своего типа: speaker → render, mic → capture
+  selectDevice(deviceId: string): boolean;
+  clearDevice(): void;
 }
 
-export const speaker: Volume; // контроллер вывода (render)
-export const mic: Volume;     // контроллер ввода (capture)
+export interface AudioRoot {
+  // Совместимость
+  speaker: VolumeController;            // вывод (render)
+  mic: VolumeController;                // ввод (capture)
+
+  // Новые алиасы (по умолчанию — динамики)
+  getDevices(): DeviceInfo[];           // устройства render (спикеры/наушники)
+  selectDevice(deviceId: string): boolean; // выбрать render-устройство
+}
+
+declare const audio: AudioRoot;
+export = audio;
