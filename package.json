@@ -1,35 +1,45 @@
 {
   "name": "win-audio-fork",
-  "version": "1.2.1",
-  "description": "Fork of win-audio: control speaker and microphone volume on Windows",
+  "version": "2.0.1",
+  "description": "Windows audio control for speakers/mics with per-device selection (fork; listener removed).",
   "main": "index.js",
   "types": "index.d.ts",
-  "gypfile": true,
-  "scripts": {
-    "install": "node-gyp rebuild",
-    "test": "node test.js"
-  },
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/stpatrik/win-audio-fork.git"
+    "url": "https://github.com/stpatrik/win-audio.git"
   },
   "keywords": [
-    "audio",
     "windows",
+    "audio",
     "volume",
     "microphone",
     "speaker",
-    "win32"
+    "wasapi",
+    "node-addon",
+    "node-gyp"
   ],
-  "author": "stpatrik",
-  "license": "MIT",
+  "os": ["win32"],
+  "engines": { "node": ">=14" },
+  "gypfile": true,
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "binding.gyp",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "install": "node-gyp-build",        // подхватит prebuild, а если нет — соберёт
+    "rebuild": "node-gyp rebuild",
+    "test": "node -e \"console.log('ok')\""
+  },
   "dependencies": {
+    "node-gyp-build": "^4.8.0",
     "node-addon-api": "^7.1.0"
   },
   "devDependencies": {
-    "node-gyp": "^10.0.1"
-  },
-  "os": [
-    "win32"
-  ]
+    "node-gyp": "^10.0.0"
+  }
 }
