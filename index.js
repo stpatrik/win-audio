@@ -1,46 +1,96 @@
-// Совместимость с оригиналом + расширения для выбора устройств.
-// Внутри используем нативные биндинги (_create для инстанса и _getDevices для списка).
-const bindings = require('node-gyp-build')(__dirname);
+// Robust native binding loader without node-gyp-build.
+// 1) prebuilds/<platform>-<arch>/node.napi.node
+// 2) build/Release/win_audio.node
+// + asar-safe: replace app.asar -> app.asar.unpacked
 
-// Вспомогательная функция создания контроллера для типа устройства
+const fs = require('fs');
+const path = require('path');
+
+function fixAsarPath(p) {
+  // Electron can't require .node from inside app.asar; use unpacked path
+  return p.replace(/app\.asar([\\/])/g, 'app.asar.unpacked$1');
+}
+
+function firstExisting(paths) {
+  for (const p of paths) {
+    try {
+      if (fs.existsSync(p)) return p;
+    } catch (_) {}
+  }
+  return null;
+}
+
+function resolveNative() {
+  const root = __dirname;
+  const platArch = `${process.platform}-${process.arch}`;
+
+  const candidates = [
+    // prebuild (preferred)
+    path.join(root, 'prebuilds', platArch, 'node.napi.node'),
+    // common aliases for prebuild dirs (optional)
+    path.join(root, 'prebuilds', `${platArch}`, 'win_audio.node'),
+    // built from source via node-gyp
+    path.join(root, 'build', 'Release', 'win_audio.node'),
+    path.join(root, 'build', 'Debug', 'win_audio.node'),
+  ];
+
+  // also try .asar.unpacked variants for packaged Electron apps
+  const expanded = candidates.flatMap((p) => [p, fixAsarPath(p)]);
+  const found = firstExisting(expanded);
+  if (!found) {
+    const hint = [
+      `Tried paths:`,
+      ...expanded.map((p) => ` - ${p}`),
+      ``,
+      `If running in Electron, ensure .node files are unpacked (asarUnpack):`,
+      `  - node_modules/win-audio-fork/prebuilds/**`,
+      `  - node_modules/win-audio-fork/build/Release/*.node`,
+    ].join('\n');
+    throw new Error(`win-audio-fork: native binary (.node) not found.\n${hint}`);
+  }
+  return require(found);
+}
+
+// Load native bindings
+const bindings = resolveNative();
+
+// ===== JS wrapper (совместимость с оригиналом + наши расширения) =====
 function createController(kind /* 'render' | 'capture' */) {
-  // В нативном аддоне _create ожидает boolean: true => render (speaker), false => capture (mic)
+  // Внутри C++: _create(true)=render (speaker), _create(false)=capture (mic)
   const inst = bindings._create(kind === 'render');
 
   return {
     // ОРИГИНАЛЬНЫЙ API
-    get: () => inst.get(),                 // 0..100 или null
+    get: () => inst.get(),                 // 0..100 | null
     set: (v) => inst.set(Number(v)),       // boolean
     mute: () => inst.mute(),               // boolean
     unmute: () => inst.unmute(),           // boolean
     isMuted: () => inst.isMuted(),         // boolean | null
 
-    // УДОБНЫЕ ХЕЛПЕРЫ (не ломают совместимость)
+    // ХЕЛПЕРЫ
     increase: (delta = 2) => {
-      const cur = inst.get();
-      return inst.set(Math.min(100, (cur || 0) + Number(delta)));
+      const cur = inst.get() || 0;
+      return inst.set(Math.min(100, cur + Number(delta)));
     },
     decrease: (delta = 2) => {
-      const cur = inst.get();
-      return inst.set(Math.max(0, (cur || 0) - Number(delta)));
+      const cur = inst.get() || 0;
+      return inst.set(Math.max(0, cur - Number(delta)));
     },
 
-    // НАШИ НОВЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С КОНКРЕТНЫМИ УСТРОЙСТВАМИ
-    getDevices: () => bindings._getDevices(kind),     // только этого типа
-    selectDevice: (deviceId) => inst.use(String(deviceId)), // привязка к устройству
-    clearDevice: () => inst.clearDevice(),            // вернуться к системному default
+    // НОВОЕ
+    getDevices: () => bindings._getDevices(kind),              // только своего типа
+    selectDevice: (deviceId) => inst.use(String(deviceId)),    // привязка к девайсу
+    clearDevice: () => inst.clearDevice(),                     // вернуть системный default
   };
 }
 
 const audio = {
-  // ОРИГИНАЛЬНЫЙ API (совместимость)
-  speaker: createController('render'), // динамики/наушники
-  mic: createController('capture'),    // микрофоны
+  // Совместимость с оригиналом
+  speaker: createController('render'),
+  mic: createController('capture'),
 
-  // НОВЫЕ КОРОНЕВЫЕ АЛИАСЫ (по умолчанию управляют динамиками, чтобы не ломать поведение)
-  // audio.getDevices() — только РЕНДЕР (динамики), как и просили
+  // Алиасы по умолчанию для динамиков (render)
   getDevices: () => bindings._getDevices('render'),
-  // audio.selectDevice(id) — выбирает устройство для speaker (render)
   selectDevice: (deviceId) => audio.speaker.selectDevice(deviceId),
 };
 
