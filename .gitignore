@@ -10,3 +10,15 @@ prebuilds/
 # system
 .DS_Store
 Thumbs.db
+
+# Node
+node_modules/
+build/
+package-lock.json
+
+# Tests
+test*.js
+interactive-test.js
+mic-control.js
+listen-demo.js
+pack-test/
