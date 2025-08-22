@@ -1,13 +1,13 @@
 {
   "name": "win-audio-fork",
-  "version": "2.0.1",
-  "description": "Windows audio control for speakers/mics with per-device selection (fork; listener removed).",
+  "version": "2.1.0",
+  "description": "Windows audio control for speakers/mics with per-device selection (fork; no listener).",
   "main": "index.js",
   "types": "index.d.ts",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/stpatrik/win-audio.git"
+    "url": "https://github.com/stpatrik/win-audio-fork.git"
   },
   "keywords": [
     "windows",
@@ -17,7 +17,8 @@
     "speaker",
     "wasapi",
     "node-addon",
-    "node-gyp"
+    "node-gyp",
+    "electron"
   ],
   "os": ["win32"],
   "engines": { "node": ">=14" },
@@ -27,18 +28,18 @@
     "index.d.ts",
     "binding.gyp",
     "src/",
+    "prebuilds/",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "install": "node-gyp-build",        
+    "install": "node-gyp rebuild",
+    "rebuild": "node-gyp rebuild",
     "test": "node -e \"console.log('ok')\""
   },
-  "dependencies": {
-    "node-gyp-build": "^4.8.0",
-    "node-addon-api": "^7.1.0"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "node-gyp": "^10.0.0"
+    "node-gyp": "^10.0.0",
+    "node-addon-api": "^7.1.0"
   }
 }
