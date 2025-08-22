@@ -31,8 +31,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "install": "node-gyp-build",        // подхватит prebuild, а если нет — соберёт
-    "rebuild": "node-gyp rebuild",
+    "install": "node-gyp-build",        
     "test": "node -e \"console.log('ok')\""
   },
   "dependencies": {
