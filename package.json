@@ -1,6 +1,6 @@
 {
   "name": "win-audio-fork",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Windows audio control for speakers/mics with per-device selection (fork; no listener).",
   "main": "index.js",
   "types": "index.d.ts",
