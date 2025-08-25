@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/stpatrik/win-audio-fork.git"
+    "url": "git+https://github.com/stpatrik/win-audio-fork.git"
   },
   "keywords": [
     "windows",
@@ -20,8 +20,12 @@
     "node-gyp",
     "electron"
   ],
-  "os": ["win32"],
-  "engines": { "node": ">=14" },
+  "os": [
+    "win32"
+  ],
+  "engines": {
+    "node": ">=14"
+  },
   "gypfile": true,
   "files": [
     "index.js",
