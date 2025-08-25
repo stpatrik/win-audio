@@ -20,12 +20,8 @@
     "node-gyp",
     "electron"
   ],
-  "os": [
-    "win32"
-  ],
-  "engines": {
-    "node": ">=14"
-  },
+  "os": ["win32"],
+  "engines": { "node": ">=14" },
   "gypfile": true,
   "files": [
     "index.js",
@@ -41,9 +37,10 @@
     "rebuild": "node-gyp rebuild",
     "test": "node -e \"console.log('ok')\""
   },
-  "dependencies": {},
-  "devDependencies": {
-    "node-gyp": "^10.0.0",
+  "dependencies": {
     "node-addon-api": "^7.1.0"
+  },
+  "devDependencies": {
+    "node-gyp": "^10.0.0"
   }
 }
